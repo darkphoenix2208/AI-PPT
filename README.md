@@ -47,7 +47,7 @@
     ```
 
 3.  **Configure Environment**
-    Create a `.env` file in the root directory:
+    Create a `.env` file in the root directory (do NOT commit this file):
     ```env
     FLASK_SECRET_KEY=super_secret_key
     GROQ_API_KEY=gsk_...
