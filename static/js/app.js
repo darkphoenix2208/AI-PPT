@@ -366,7 +366,11 @@ class ChatBot {
 
         } catch (err) {
             this.hideTypingIndicator();
-            this.showError(err.message || "An error occurred");
+            if (err.message.includes("Failed to fetch")) {
+                this.showError("Network Error: Could not connect to the server. If you are running locally, ensure 'python app.py' is running. If hosted, the server might have timed out (e.g. YouTube fetching took too long).");
+            } else {
+                this.showError(err.message || "An error occurred");
+            }
         }
 
         this.isProcessing = false;
