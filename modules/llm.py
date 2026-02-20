@@ -30,13 +30,16 @@ def ask_llm(md_text, api_key, slide_length="Medium (6-10)"):
     provider = os.getenv("LLM_PROVIDER", "groq").lower()
 
     # Determine slide count based on selection
-    if "Short" in slide_length:
-        num_slides = "3-5"
-    elif "Long" in slide_length:
-        num_slides = "11-15"
+    if slide_length == "Short (3-5)":
+        num_slides = "3 to 5"
+    elif slide_length == "Medium (6-10)":
+        num_slides = "6 to 10"
+    elif slide_length == "Long (11-15)":
+        num_slides = "11 to 15"
     else:
-        num_slides = "7-10"
-
+        # Custom length provided from frontend
+        num_slides = str(slide_length)
+        
     # Build the enhanced prompt
     system_prompt = """
     You are an elite Presentation Designer at a top-tier management consulting firm (e.g., McKinsey, BCG, Bain) or tech giant (e.g., Apple).
@@ -47,7 +50,7 @@ def ask_llm(md_text, api_key, slide_length="Medium (6-10)"):
        - If the user's prompt is completely vague (e.g., "Marketing", "Space", "AI"), you MUST return a JSON object with `type: "question"` and exactly 3 clarifying questions. Do not generate a presentation for a 1-word prompt without context.
     2. **Structure & Quantity:** 
        - If the prompt has enough detail (or is based on a document/transcript), return a JSON object with `type: "presentation"`.
-       - **Quantity:** You MUST generate between **{num_slides}** slides. Do not just pick the lowest number. Intelligently choose the exact number of slides based on how much detail the topic requires.
+       - **Quantity:** You MUST generate EXACTLY the number of slides requested: **{num_slides}** slides. This is a STRICT requirement. If the user asks for a specific number (like 12), you must generate exactly 12 slides. If they ask for a range (like 6 to 10), pick a number in that range and generate exactly that many. Do not generate fewer slides than requested under any circumstances.
     3. **Design & Content Rules (Strict):**
        - **Adaptive Tone:** Perfect your tone for the specific audience hinted in the prompt. If it is a "case study" or "financial report," use highly professional, strictly factual, and deep analytical language. If it is for "school children" or "beginners," use simple, engaging, and easy-to-understand language.
        - **Theme Color**: Provide a "theme_color" hex code at the root level that matches the emotional tone of the presentation (e.g., "#10b981" for eco, "#3b82f6" for tech, "#8b5cf6" for creativity).

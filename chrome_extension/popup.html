@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            width: 300px;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            text-align: center;
+            background: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        p {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #4f46e5;
+        }
+
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #10b981;
+            min-height: 15px;
+        }
+
+        #error {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #ef4444;
+            min-height: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>SlideGen AI</h2>
+    <p>Convert this page into a presentation structure instantly.</p>
+    <button id="summarizeBtn">Summarize to PPT</button>
+    <div id="status"></div>
+    <div id="error"></div>
+    <script src="popup.js"></script>
+</body>
+
+</html>

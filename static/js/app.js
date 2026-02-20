@@ -1,30 +1,41 @@
 class ChatBot {
     constructor() {
-        this.chatMessages = document.getElementById('chatMessages');
         this.textInput = document.getElementById('textInput');
         this.sendButton = document.getElementById('sendButton');
         this.fileInput = document.getElementById('fileInput');
         this.fileUploadArea = document.getElementById('fileUploadArea');
         this.uploadedFiles = document.getElementById('uploadedFiles');
-        this.typingIndicator = document.getElementById('typingIndicator');
+
+        // New UI Elements
+        this.mainContent = document.getElementById('mainContent');
+        this.chatMessages = document.getElementById('chatMessages');
+        this.loadingContainer = document.getElementById('loadingContainer');
+        this.loadingText = document.getElementById('loadingText');
+        this.outlineContainer = document.getElementById('outlineContainer');
+        this.outlineList = document.getElementById('outlineList');
+        this.btnBuildPPT = document.getElementById('btnBuildPPT');
 
         this.uploadedFilesList = [];
         this.isProcessing = false;
         this.conversationContext = [];
 
-        this.botResponses = [
-            "I've received your request. Let me process your presentation...",
-            "Working on enhancing your PowerPoint presentation...",
-            "Almost done! Applying final touches to your slides...",
-            "Your presentation is ready! Click the download button below to get your enhanced PowerPoint file."
+        // Dynamic loading messages
+        this.loadingMessages = [
+            "Analyzing prompt...",
+            "Structuring outline...",
+            "Fetching custom graphics...",
+            "Rendering slides..."
         ];
+        this.loadingInterval = null;
+
+        // Store LLM outline response
+        this.currentOutlineData = null;
 
         this.init();
     }
 
     init() {
         this.setupEventListeners();
-        this.showWelcomeMessage();
         this.updateSendButton();
     }
 
@@ -33,22 +44,42 @@ class ChatBot {
         // Send button click
         this.sendButton.addEventListener('click', (e) => {
             e.preventDefault();
-            this.sendMessage();
+            this.generateOutline();
         });
 
         // Enter key in textarea
         this.textInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                this.sendMessage();
+                this.generateOutline();
             }
         });
 
         // Text input changes
         this.textInput.addEventListener('input', () => {
-            this.adjustTextareaHeight();
             this.updateSendButton();
         });
+
+        // Slide Count toggle Custom
+        const lengthSelect = document.getElementById('lengthSelect');
+        const customContainer = document.getElementById('customLengthContainer');
+        if (lengthSelect && customContainer) {
+            lengthSelect.addEventListener('change', (e) => {
+                if (e.target.value === 'Custom') {
+                    customContainer.classList.remove('hidden');
+                } else {
+                    customContainer.classList.add('hidden');
+                }
+            });
+        }
+
+        // Build PPT Button
+        if (this.btnBuildPPT) {
+            this.btnBuildPPT.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.buildPPT();
+            });
+        }
 
         // File upload area click
         this.fileUploadArea.addEventListener('click', (e) => {
@@ -92,16 +123,7 @@ class ChatBot {
         document.addEventListener('drop', (e) => e.preventDefault());
     }
 
-    showWelcomeMessage() {
-        const welcomeMessage = "Hello! I'm your PowerPoint assistant. I can help you create or enhance presentations. You can upload an existing PPT file, provide text instructions, or both. How can I help you today?";
-        this.addBotMessage(null, welcomeMessage);
-    }
-
-    adjustTextareaHeight() {
-        this.textInput.style.height = 'auto';
-        const newHeight = Math.min(this.textInput.scrollHeight, 120);
-        this.textInput.style.height = newHeight + 'px';
-    }
+    // Removed adjustTextareaHeight and showWelcomeMessage as they are not needed in Bento Box
 
     updateSendButton() {
         const hasText = this.textInput.value.trim().length > 0;
@@ -220,7 +242,26 @@ class ChatBot {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    async sendMessage() {
+    startLoading() {
+        this.mainContent.classList.add('hidden');
+        this.loadingContainer.classList.remove('hidden');
+        this.outlineContainer.classList.add('hidden');
+
+        let msgIndex = 0;
+        this.loadingText.textContent = this.loadingMessages[0];
+
+        this.loadingInterval = setInterval(() => {
+            msgIndex = (msgIndex + 1) % this.loadingMessages.length;
+            this.loadingText.textContent = this.loadingMessages[msgIndex];
+        }, 2500);
+    }
+
+    stopLoading() {
+        clearInterval(this.loadingInterval);
+        this.loadingContainer.classList.add('hidden');
+    }
+
+    async generateOutline() {
         if (this.isProcessing) return;
 
         const text = this.textInput.value.trim();
@@ -237,30 +278,17 @@ class ChatBot {
         }
 
         if (hasFiles) {
-            const fileMessage = `📎 Uploaded ${this.uploadedFilesList.length} file(s): ${this.uploadedFilesList.map(f => f.name).join(', ')
-                }`;
+            const fileMessage = `📎 Uploaded ${this.uploadedFilesList.length} file(s): ${this.uploadedFilesList.map(f => f.name).join(', ')}`;
             this.addUserMessage(fileMessage);
         }
 
         this.textInput.value = '';
-        this.adjustTextareaHeight();
-
-        await this.processRequest(text, this.uploadedFilesList);
-
-        this.isProcessing = false;
-        this.updateSendButton();
-    }
-
-    async processRequest(text, files) {
         this.showTypingIndicator();
 
         try {
             const formData = new FormData();
 
-            // Construct context-aware prompt
-            // Join all previous context + current file info if needed
             let fullPrompt = "";
-
             if (this.conversationContext.length > 0) {
                 fullPrompt = this.conversationContext.map(msg => `${msg.role}: ${msg.content}`).join("\n\n");
             } else if (text) {
@@ -269,97 +297,71 @@ class ChatBot {
 
             if (fullPrompt) formData.append("text", fullPrompt);
 
-            files.forEach((file) => formData.append("files[]", file));
+            this.uploadedFilesList.forEach((file) => formData.append("files[]", file));
+
             const apiKey = document.getElementById("apiKeyInput")?.value || "";
+            let slideLength = document.getElementById("lengthSelect")?.value || "Medium (6-10)";
 
-            // Get theme color from selector
-            const themeColor = document.getElementById("themeSelect")?.value || "2980b9";
-            formData.append("theme_color", themeColor);
+            if (slideLength === 'Custom') {
+                const customVal = document.getElementById("customLengthInput")?.value;
+                if (customVal && parseInt(customVal) > 0) {
+                    slideLength = customVal.trim();
+                } else {
+                    throw new Error("Please enter a valid number for custom slide count.");
+                }
+            }
 
-            // Get slide length from selector
-            const slideLength = document.getElementById("lengthSelect")?.value || "Medium (6-10)";
             formData.append("slide_length", slideLength);
-
             formData.append("api_key", apiKey);
-            const response = await fetch("/process", {
+
+            const response = await fetch("/api/generate_outline", {
                 method: "POST",
                 body: formData
             });
 
-            if (!response.ok) throw new Error("Failed to process request. Please try again.");
+            if (!response.ok) throw new Error("Failed to process request.");
 
-            const contentType = response.headers.get("content-type");
-            // Check if response is JSON (question) or blob (PPT file)
-            if (contentType && contentType.includes("application/json")) {
-                // LLM is asking a question or error
-                const data = await response.json();
-                this.hideTypingIndicator();
+            const data = await response.json();
 
-                if (data.type === "question") {
-                    this.addBotMessage(null, "I need a bit more detail to create the perfect presentation. Could you clarify?", false);
+            this.hideTypingIndicator();
 
-                    // Add bot question to context
-                    let botQuestionText = "I need a bit more detail. ";
-                    if (data.questions && data.questions.length > 0) {
-                        botQuestionText += data.questions.join("\n");
-                    }
-                    this.conversationContext.push({ role: "Assistant", content: botQuestionText });
-
-                    // Add suggestion chips
-                    if (data.questions && data.questions.length > 0) {
-                        const chipsContainer = document.createElement("div");
-                        chipsContainer.className = "suggestion-chips";
-                        chipsContainer.style.display = "flex";
-                        chipsContainer.style.flexWrap = "wrap";
-                        chipsContainer.style.gap = "8px";
-                        chipsContainer.style.marginTop = "12px";
-
-                        data.questions.forEach(q => {
-                            const btn = document.createElement("button");
-                            btn.className = "suggestion-btn";
-                            btn.textContent = q;
-                            btn.style.padding = "8px 16px";
-                            btn.style.borderRadius = "20px";
-                            btn.style.border = "1px solid var(--primary)";
-                            btn.style.background = "rgba(41, 128, 185, 0.1)";
-                            btn.style.color = "var(--primary)";
-                            btn.style.cursor = "pointer";
-                            btn.style.fontSize = "13px";
-                            btn.style.transition = "all 0.2s";
-
-                            btn.onmouseover = () => {
-                                btn.style.background = "var(--primary)";
-                                btn.style.color = "white";
-                            };
-                            btn.onmouseout = () => {
-                                btn.style.background = "rgba(41, 128, 185, 0.1)";
-                                btn.style.color = "var(--primary)";
-                            };
-
-                            btn.onclick = () => {
-                                this.textInput.value = q;
-                                this.sendMessage();
-                            };
-                            chipsContainer.appendChild(btn);
-                        });
-
-                        // Append to the last bot message
-                        const lastMsg = this.chatMessages.lastElementChild.querySelector('.message.bot-message');
-                        if (lastMsg) lastMsg.appendChild(chipsContainer);
-                    }
-
-                } else if (data.error) {
-                    throw new Error(data.error);
-                } else {
-                    throw new Error("Unknown response from server");
-                }
-            } else {
-                // Normal PPT download
-                const result = await response.blob();
-                this.hideTypingIndicator();
-                this.addBotMessage(result, "Your presentation has been processed!", true);
-                // Clear context on successful generation
+            if (data.type === "presentation" && data.data && data.data.slides) {
                 this.conversationContext = [];
+                this.chatMessages.innerHTML = ''; // Keep it clean for next time 
+                this.currentOutlineData = data.data;
+                this.renderOutlineUI(data.data.slides);
+            } else if (data.type === "question") {
+                const msgContainer = this.addBotMessage("I need a bit more detail to create the perfect presentation. Could you clarify?");
+
+                let botQuestionText = "I need a bit more detail. ";
+                if (data.questions && data.questions.length > 0) {
+                    botQuestionText += data.questions.join("\n");
+                }
+                this.conversationContext.push({ role: "Assistant", content: botQuestionText });
+
+                // Add suggestion chips
+                if (data.questions && data.questions.length > 0) {
+                    const chipsContainer = document.createElement("div");
+                    chipsContainer.className = "suggestion-chips";
+
+                    data.questions.forEach(q => {
+                        const btn = document.createElement("button");
+                        btn.className = "suggestion-btn";
+                        btn.textContent = q;
+                        btn.onclick = () => {
+                            this.textInput.value = q;
+                            this.generateOutline();
+                        };
+                        chipsContainer.appendChild(btn);
+                    });
+
+                    msgContainer.querySelector('.message.bot-message').appendChild(chipsContainer);
+                }
+                this.scrollToBottom();
+            } else if (data.error) {
+                throw new Error(data.error);
+            } else {
+                throw new Error("Unknown response from server");
             }
 
         } catch (err) {
@@ -367,16 +369,127 @@ class ChatBot {
             this.showError(err.message || "An error occurred");
         }
 
-        this.clearUploadedFiles();
+        this.isProcessing = false;
+        this.updateSendButton();
+    }
+
+    renderOutlineUI(slides) {
+        this.mainContent.classList.add('hidden');
+        this.outlineContainer.classList.remove('hidden');
+        this.outlineList.innerHTML = '';
+
+        slides.forEach((slide, index) => {
+            const card = document.createElement('div');
+            card.className = 'outline-card';
+            card.dataset.index = index;
+
+            card.innerHTML = `
+                <div class="drag-handle"><i class="ph ph-dots-six-vertical"></i></div>
+                <div class="card-content">
+                    <span class="slide-number">Slide ${index + 1} - ${slide.layout}</span>
+                    <input type="text" class="slide-title-input" value="${this.escapeHtml(slide.title)}" />
+                </div>
+            `;
+            this.outlineList.appendChild(card);
+        });
+
+        // Initialize SortableJS
+        if (window.Sortable) {
+            new Sortable(this.outlineList, {
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'sortable-ghost',
+                onEnd: () => {
+                    this.updateSlideNumbers();
+                }
+            });
+        }
+    }
+
+    updateSlideNumbers() {
+        const cards = this.outlineList.querySelectorAll('.outline-card');
+        cards.forEach((card, index) => {
+            const numSpan = card.querySelector('.slide-number');
+            // Assuming layout text is preserved in the span text... simple extraction for now
+            const parts = numSpan.textContent.split('-');
+            const layoutText = parts.length > 1 ? parts[1].trim() : "content";
+            numSpan.textContent = `Slide ${index + 1} - ${layoutText}`;
+        });
+    }
+
+    async buildPPT() {
+        if (!this.currentOutlineData) return;
+
+        // Rebuild slides array based on DOM order and edited titles
+        const newSlides = [];
+        const cards = this.outlineList.querySelectorAll('.outline-card');
+
+        cards.forEach(card => {
+            const originalIndex = parseInt(card.dataset.index);
+            const titleInput = card.querySelector('.slide-title-input').value;
+
+            // Clone original slide data
+            const slideData = JSON.parse(JSON.stringify(this.currentOutlineData.slides[originalIndex]));
+            slideData.title = titleInput;
+            newSlides.push(slideData);
+        });
+
+        this.currentOutlineData.slides = newSlides;
+
+        this.startLoading();
+        this.loadingText.textContent = "Compiling PPTX File...";
+
+        try {
+            const formData = new FormData();
+            formData.append("data", JSON.stringify(this.currentOutlineData));
+
+            const themeColor = document.getElementById("themeSelect")?.value || "2980b9";
+            formData.append("theme_color", themeColor);
+
+            const response = await fetch("/api/generate_ppt", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) throw new Error("Failed to generate PPT.");
+
+            const blob = await response.blob();
+            this.downloadFile(blob);
+
+            // Reset UI
+            this.stopLoading();
+            this.outlineContainer.classList.add('hidden');
+            this.mainContent.classList.remove('hidden');
+            this.textInput.value = '';
+            this.clearUploadedFiles();
+
+        } catch (err) {
+            this.stopLoading();
+            alert(err.message || "Failed to generate PPT");
+        }
     }
 
     showTypingIndicator() {
-        this.typingIndicator.classList.remove('hidden');
+        if (!this.typingIndicatorElement) {
+            this.typingIndicatorElement = document.createElement('div');
+            this.typingIndicatorElement.className = 'typing-indicator';
+            this.typingIndicatorElement.innerHTML = `
+                <div class="bot-avatar glass-avatar" style="background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px var(--primary-glow);">
+                    <i class="ph-fill ph-robot" style="font-size: 18px;"></i>
+                </div>
+                <div class="typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            `;
+        }
+        this.chatMessages.appendChild(this.typingIndicatorElement);
         this.scrollToBottom();
     }
 
     hideTypingIndicator() {
-        this.typingIndicator.classList.add('hidden');
+        if (this.typingIndicatorElement && this.typingIndicatorElement.parentNode) {
+            this.typingIndicatorElement.parentNode.removeChild(this.typingIndicatorElement);
+        }
     }
 
     addUserMessage(text) {
@@ -397,11 +510,10 @@ class ChatBot {
         this.scrollToBottom();
     }
 
-    addBotMessage(result, text, includeDownload = false) {
+    addBotMessage(text) {
         const messageContainer = document.createElement('div');
         messageContainer.className = 'message-container bot-message-container';
 
-        // Main message HTML
         messageContainer.innerHTML = `
         <div class="message-wrapper">
             <div class="bot-avatar glass-avatar" style="background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px var(--primary-glow);">
@@ -412,40 +524,11 @@ class ChatBot {
             </div>
         </div>
         <div class="timestamp">${this.formatTime(new Date())}</div>
-    `;
+        `;
 
         this.chatMessages.appendChild(messageContainer);
         this.scrollToBottom();
-
-        // Add download button if needed
-        if (includeDownload && result) {
-            const btn = document.createElement('button');
-            btn.className = 'download-button';
-            btn.type = 'button';
-            btn.innerHTML = `
-            <i class="ph-bold ph-download-simple" style="font-size: 18px;"></i>
-            Download Enhanced PPT
-        `;
-            btn.addEventListener('click', () => this.downloadFile(result));
-            messageContainer.querySelector('.message.bot-message').appendChild(btn);
-        }
-    }
-
-    downloadFile(blob) {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "presentation.pptx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-    }
-
-    clearUploadedFiles() {
-        this.uploadedFilesList = [];
-        this.uploadedFiles.innerHTML = '';
-        this.fileInput.value = '';
+        return messageContainer;
     }
 
     showError(message) {
@@ -473,9 +556,32 @@ class ChatBot {
         }, 5000);
     }
 
+    downloadFile(blob) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "presentation.pptx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    }
+
+    clearUploadedFiles() {
+        this.uploadedFilesList = [];
+        if (this.uploadedFiles) {
+            this.uploadedFiles.innerHTML = '';
+        }
+        if (this.fileInput) {
+            this.fileInput.value = '';
+        }
+    }
+
     scrollToBottom() {
         setTimeout(() => {
-            this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            if (this.chatMessages) {
+                this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+            }
         }, 50);
     }
 

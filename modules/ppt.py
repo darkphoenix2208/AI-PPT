@@ -4,11 +4,60 @@ import textwrap
 from io import BytesIO
 from pptx import Presentation
 from pptx.util import Inches, Pt
-from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.shapes import MSO_SHAPE, MSO_SHAPE_TYPE
 from pptx.enum.text import PP_PARAGRAPH_ALIGNMENT
 from pptx.dml.color import RGBColor
 from pptx.chart.data import CategoryChartData
 from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION, XL_TICK_MARK
+
+THEMES = {
+    "modern_dark": {"bg": (30,30,30), "text": (255,255,255), "accent": (0,122,255), "font": "Segoe UI"},
+    "clean_light": {"bg": (245,245,245), "text": (33,33,33), "accent": (39,174,96), "font": "Helvetica"},
+    "2980b9": {"bg": (245,245,245), "text": (40,40,40), "accent": (41, 128, 185), "font": "Arial"},        # Professional Blue
+    "e74c3c": {"bg": (250,250,250), "text": (30,30,30), "accent": (231, 76, 60), "font": "Georgia"},        # Modern Red
+    "27ae60": {"bg": (245,250,245), "text": (30,40,30), "accent": (39, 174, 96), "font": "Trebuchet MS"},   # Fresh Green
+    "8e44ad": {"bg": (248,245,250), "text": (40,30,40), "accent": (142, 68, 173), "font": "Verdana"},       # Creative Purple
+    "0f172a": {"bg": (15,23,42),   "text": (240,240,240), "accent": (56, 189, 248), "font": "Segoe UI"},    # Dark / Slate
+    "16a085": {"bg": (240,245,245), "text": (30,40,40), "accent": (22, 160, 133), "font": "Tahoma"}         # Teal Aesthetics
+}
+
+def apply_theme(prs, theme_name):
+    """
+    Applies the chosen Master Theme font styles and colors to all elements.
+    """
+    theme = THEMES.get(theme_name, THEMES['2980b9'])  # Fallback to blue
+    
+    font_family = theme["font"]
+    text_color = RGBColor(*theme["text"])
+    accent_color = RGBColor(*theme["accent"])
+    
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if not shape.has_text_frame:
+                # Colorize accent shapes (like the title lines)
+                if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE or shape.shape_type == MSO_SHAPE_TYPE.FREEFORM:
+                     if hasattr(shape, "fill") and shape.fill.type == 1: # solid fill
+                          # simplistic check to change colors.
+                          # Warning: this might recolor logos if they're auto shapes, but usually they're picture types
+                          shape.fill.solid()
+                          shape.fill.fore_color.rgb = accent_color
+                          if hasattr(shape, "line") and shape.line.color:
+                              shape.line.color.rgb = accent_color
+                continue
+                
+            for paragraph in shape.text_frame.paragraphs:
+                # Default style everything to body text
+                for run in paragraph.runs:
+                    run.font.name = font_family
+                    run.font.color.rgb = text_color
+                    
+                # If it's a title (large font or bold), apply accent and bold
+                if paragraph.runs and paragraph.runs[0].font.size and paragraph.runs[0].font.size > Pt(24):
+                     for run in paragraph.runs:
+                         run.font.color.rgb = accent_color
+                         run.font.bold = True
+                         
+    return prs
 
 def fetch_image(query):
     """
@@ -465,5 +514,9 @@ def create_ppt(presentation_data, theme_color=(41, 128, 185), base_ppt=None, bac
             notes_slide = slide.notes_slide
             text_frame = notes_slide.notes_text_frame
             text_frame.text = slide_data['speaker_notes']
+
+    # Apply Master Theme engine before saving
+    theme_code_str = '{:02x}{:02x}{:02x}'.format(*theme_color).lower()
+    prs = apply_theme(prs, theme_code_str)
 
     return prs

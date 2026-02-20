@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Load Phosphor Icons for modern slick icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Load SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 
 <body>
@@ -45,13 +47,17 @@
 
             <div class="settings-group">
                 <h3><i class="ph ph-list-numbers"></i> Slide Count</h3>
-                <div class="select-glass">
+                <div class="select-glass" style="margin-bottom: 8px;">
                     <select id="lengthSelect">
                         <option value="Short (3-5)">Pitch (3-5 slides)</option>
                         <option value="Medium (6-10)" selected>Standard (6-10 slides)</option>
                         <option value="Long (11-15)">Deep Dive (11-15 slides)</option>
+                        <option value="Custom">Custom Range</option>
                     </select>
                     <i class="ph ph-caret-down select-icon"></i>
+                </div>
+                <div class="input-glass hidden" id="customLengthContainer">
+                    <input type="number" id="customLengthInput" placeholder="Enter number (e.g., 20)" min="1" max="50">
                 </div>
             </div>
 
@@ -96,32 +102,44 @@
                 </div>
             </header>
 
-            <div class="chat-container">
-                <div class="chat-messages" id="chatMessages">
-                    <!-- Messages go here -->
-                </div>
-
-                <div class="typing-indicator hidden" id="typingIndicator">
-                    <div class="bot-avatar glass-avatar">
-                        <i class="ph-fill ph-robot"></i>
-                    </div>
-                    <div class="typing-dots">
-                        <span></span><span></span><span></span>
-                    </div>
-                </div>
-
-                <div class="input-area">
-                    <div class="input-wrapper glass-panel">
-                        <textarea id="textInput"
-                            placeholder="E.g., Create a 10-slide strategy deck for a new SaaS product launch..."
-                            rows="1"></textarea>
-                        <button id="sendButton" class="btn-primary" disabled>
-                            <i class="ph-bold ph-paper-plane-right"></i>
-                            <span>Generate</span>
-                        </button>
+            <div id="mainContent" class="chat-container">
+                <div id="chatMessages" class="chat-messages"></div>
+                <!-- Bento Box Layout Form -->
+                <div class="bento-container" id="bentoContainer">
+                    <!-- Box 1: The Main Prompt Input -->
+                    <div class="bento-box bento-large input-area" id="boxPrompt">
+                        <h3><i class="ph ph-text-t"></i> What do you want to present?</h3>
+                        <div class="input-wrapper glass-panel">
+                            <textarea id="textInput"
+                                placeholder="E.g., Create a 10-slide strategy deck for a new SaaS product launch..."
+                                rows="3"></textarea>
+                            <button id="sendButton" class="btn-primary" disabled>
+                                <i class="ph-bold ph-magic-wand"></i>
+                                <span>Generate Outline</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Dynamic Loading Screen -->
+            <div id="loadingContainer" class="loading-container hidden">
+                <div class="loading-spinner"></div>
+                <h2 id="loadingText">Processing...</h2>
+            </div>
+
+            <!-- Outline Editing Area -->
+            <div id="outlineContainer" class="outline-container hidden">
+                <h2>📝 Edit Presentation Outline</h2>
+                <p>Drag to reorder slides. Click titles to edit them.</p>
+                <div id="outlineList" class="outline-list">
+                    <!-- JS will populate sortable cards here -->
+                </div>
+                <button id="btnBuildPPT" class="btn-primary btn-build">
+                    <i class="ph-bold ph-export"></i> Confirm & Build PPT
+                </button>
+            </div>
+
         </main>
     </div>
 
