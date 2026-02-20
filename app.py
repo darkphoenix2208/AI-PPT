@@ -18,9 +18,16 @@ def start():
 @app.route('/process',methods=['POST'])
 def process():
     try:
+        import os
         text = request.form.get('text')
         files = request.files.getlist('files[]')
         apikey = request.form.get('api_key')
+        if not apikey:
+             apikey = os.getenv("API_KEY") # Try to get it from environment
+             # If API_KEY is set in PEXELS_API_KEY, let's use a generic LLM_API_KEY instead
+             if not apikey:
+                  apikey = os.getenv("LLM_API_KEY")
+
         theme_color_hex = request.form.get('theme_color', '2980b9')  # Default blue
         slide_length = request.form.get('slide_length', 'Medium (6-10)')
 
@@ -28,7 +35,7 @@ def process():
             text = ''
 
         if not apikey:
-            return {"error": "API Key is required"}, 400
+            return {"error": "API Key is required. Please set LLM_API_KEY in .env or provide it."}, 400
             
         # Check for YouTube URL
         if 'youtube.com' in text or 'youtu.be' in text:
@@ -114,6 +121,8 @@ def process():
             mimetype="application/vnd.openxmlformats-officedocument.presentationml.presentation"
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Error: {str(e)}")
         return {"error": str(e)}, 500
 

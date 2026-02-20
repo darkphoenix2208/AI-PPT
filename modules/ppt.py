@@ -7,6 +7,8 @@ from pptx.util import Inches, Pt
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_PARAGRAPH_ALIGNMENT
 from pptx.dml.color import RGBColor
+from pptx.chart.data import CategoryChartData
+from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION, XL_TICK_MARK
 
 def fetch_image(query):
     """
@@ -19,7 +21,8 @@ def fetch_image(query):
         return None
 
     try:
-        url = f"https://api.pexels.com/v1/search?query={query}&per_page=1"
+        # Force landscape orientation and large size to avoid random vertical/weird images
+        url = f"https://api.pexels.com/v1/search?query={query}&per_page=15&orientation=landscape&size=medium"
         headers = {
             "Authorization": api_key
         }
@@ -165,6 +168,17 @@ def create_ppt(presentation_data, theme_color=(41, 128, 185), base_ppt=None, bac
     base_ppt: Path to an existing PPTX to append slides to (preserves theme).
     background_image: Path to a background image to use (if no base_ppt).
     """
+    
+    # Extract dynamic theme color from LLM response
+    dynamic_color_hex = presentation_data.get('theme_color', None)
+    if dynamic_color_hex and dynamic_color_hex.startswith('#') and len(dynamic_color_hex) == 7:
+        try:
+             # Convert hex to RGB tuple
+             hex_code = dynamic_color_hex.lstrip('#')
+             theme_color = tuple(int(hex_code[i:i+2], 16) for i in (0, 2, 4))
+        except:
+             pass # Fallback to passed-in theme_color
+
     theme_rgb = RGBColor(*theme_color)
     
     if base_ppt and os.path.exists(base_ppt):
@@ -331,7 +345,91 @@ def create_ppt(presentation_data, theme_color=(41, 128, 185), base_ppt=None, bac
                      mid = len(content) // 2
                      fit_text(col1.text_frame, content[:mid], font_size_pt=start_font_size, font_family='Arial')
                      fit_text(col2.text_frame, content[mid:], font_size_pt=start_font_size, font_family='Arial')
-    
+
+                 elif layout_type == 'chart':
+                     # Two Boxes: Text Left (3.5"), Chart Right (6")
+                     
+                     # Text Box (Left)
+                     text_box = slide.shapes.add_textbox(Inches(0.5), Inches(2.0), Inches(3.5), Inches(5.0))
+                     fit_text(text_box.text_frame, content, font_size_pt=start_font_size, font_family='Arial')
+                     
+                     # Chart Box (Right)
+                     try:
+                         chart_data_dict = slide_data.get('chart_data')
+                         if chart_data_dict:
+                             # Build chart data
+                             chart_data = CategoryChartData()
+                             chart_data.categories = chart_data_dict.get('categories', [])
+                             for series in chart_data_dict.get('series', []):
+                                 chart_data.add_series(series.get('name', 'Series'), series.get('values', []))
+                             
+                             # Determine Chart Type
+                             chart_type_str = chart_data_dict.get('type', 'bar')
+                             if chart_type_str == 'pie': chart_type = XL_CHART_TYPE.PIE
+                             elif chart_type_str == 'line': chart_type = XL_CHART_TYPE.LINE
+                             else: chart_type = XL_CHART_TYPE.COLUMN_CLUSTERED
+                             
+                             # Add chart
+                             x, y, cx, cy = Inches(4.2), Inches(2.0), Inches(5.3), Inches(4.5)
+                             chart = slide.shapes.add_chart(chart_type, x, y, cx, cy, chart_data).chart
+                             
+                             # Professional Consulting Chart Styling
+                             chart.has_legend = True
+                             chart.legend.include_in_layout = False
+                             chart.legend.position = XL_LEGEND_POSITION.TOP
+                             
+                             # Add Chart Title if provided
+                             c_title = chart_data_dict.get('chart_title')
+                             if c_title:
+                                 chart.has_title = True
+                                 chart.chart_title.text_frame.text = c_title
+                                 chart.chart_title.text_frame.paragraphs[0].font.size = Pt(14)
+                                 chart.chart_title.text_frame.paragraphs[0].font.color.rgb = RGBColor(60, 60, 60)
+                             
+                             # Clean up axes (remove clutter)
+                             if chart_type in (XL_CHART_TYPE.COLUMN_CLUSTERED, XL_CHART_TYPE.LINE):
+                                 val_axis = chart.value_axis
+                                 val_axis.has_major_gridlines = True # Keep horizontal bounds but make them light
+                                 val_axis.major_tick_mark = XL_TICK_MARK.NONE
+                                 val_axis.minor_tick_mark = XL_TICK_MARK.NONE
+                                 cat_axis = chart.category_axis
+                                 cat_axis.major_tick_mark = XL_TICK_MARK.NONE
+                             
+                             # Enable data labels for precision
+                             try:
+                                 for plot in chart.plots:
+                                     plot.has_data_labels = True
+                                     data_labels = plot.data_labels
+                                     data_labels.font.size = Pt(10)
+                                     data_labels.font.color.rgb = RGBColor(80, 80, 80)
+                             except Exception as dle:
+                                 pass
+                             
+                             # Color the series with variations of the theme color
+                             try:
+                                  # Extract base RGB values
+                                  r, g, b = theme_rgb
+                                  
+                                  for idx, series in enumerate(chart.series):
+                                      fill = series.format.fill
+                                      fill.solid()
+                                      # Lighten the color for subsequent series to create a nice palette
+                                      factor = 1.0 + (idx * 0.4) 
+                                      new_r = min(255, int(r * factor)) if idx > 0 else r
+                                      new_g = min(255, int(g * factor)) if idx > 0 else g
+                                      new_b = min(255, int(b * factor)) if idx > 0 else b
+                                      
+                                      # If it gets completely white, fallback to a grey
+                                      if new_r == 255 and new_g == 255 and new_b == 255:
+                                          fill.fore_color.rgb = RGBColor(200, 200, 200)
+                                      else:
+                                          fill.fore_color.rgb = RGBColor(new_r, new_g, new_b)
+                             except: pass
+                         else:
+                             print("Warning: Layout is chart but chart_data is missing.")
+                     except Exception as ce:
+                         print(f"Error drawing chart: {ce}")
+     
                  else: # 'content' or default
                      # Single Full Width Box
                      text_box = slide.shapes.add_textbox(Inches(0.5), Inches(2.0), Inches(9.0), Inches(5.0))

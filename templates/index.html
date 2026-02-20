@@ -4,129 +4,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PowerPoint AI Assistant</title>
+    <title>AI PowerPoint Generator | Premium</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Load Phosphor Icons for modern slick icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 
 <body>
-    <div class="chat-container">
-        <header class="chat-header">
-            <div class="bot-info">
-                <div class="bot-avatar">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" stroke-width="2"
-                            stroke-linejoin="round" />
-                        <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        <path d="M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
+    <div class="app-layout">
+        <!-- Sidebar Settings & Uploads -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="ph-fill ph-presentation-chart"></i>
                 </div>
-                <div class="bot-details">
-                    <h1>PowerPoint Assistant</h1>
-                    <span class="bot-status">Online</span>
-                </div>
-                <div class="api-key-wrapper">
-                    <input type="password" id="apiKeyInput" placeholder="Enter AI PIPE API Key" class="api-key-input">
+                <h2>SlideGen AI</h2>
+            </div>
+
+            <div class="settings-group" style="display: none;">
+                <h3><i class="ph ph-key"></i> Authentication</h3>
+                <div class="input-glass">
+                    <input type="password" id="apiKeyInput" placeholder="Enter API Key">
                 </div>
             </div>
-        </header>
 
-        <div class="chat-messages" id="chatMessages">
-        </div>
-
-        <div class="typing-indicator hidden" id="typingIndicator">
-            <div class="bot-message-container">
-                <div class="bot-avatar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" stroke-width="2"
-                            stroke-linejoin="round" />
-                        <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                        <path d="M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
+            <div class="settings-group">
+                <h3><i class="ph ph-palette"></i> Presentation Theme</h3>
+                <div class="select-glass">
+                    <select id="themeSelect">
+                        <option value="2980b9">Professional Blue</option>
+                        <option value="e74c3c">Modern Red</option>
+                        <option value="27ae60">Fresh Green</option>
+                        <option value="8e44ad">Creative Purple</option>
+                        <option value="0f172a">Dark / Slate</option>
+                        <option value="16a085">Teal Aesthetics</option>
+                    </select>
+                    <i class="ph ph-caret-down select-icon"></i>
                 </div>
-                <div class="message bot-message typing">
+            </div>
+
+            <div class="settings-group">
+                <h3><i class="ph ph-list-numbers"></i> Slide Count</h3>
+                <div class="select-glass">
+                    <select id="lengthSelect">
+                        <option value="Short (3-5)">Pitch (3-5 slides)</option>
+                        <option value="Medium (6-10)" selected>Standard (6-10 slides)</option>
+                        <option value="Long (11-15)">Deep Dive (11-15 slides)</option>
+                    </select>
+                    <i class="ph ph-caret-down select-icon"></i>
+                </div>
+            </div>
+
+            <div class="settings-group upload-group">
+                <h3><i class="ph ph-file-ppt"></i> Reference Files</h3>
+                <div class="file-upload-area" id="fileUploadArea">
+                    <i class="ph ph-upload-simple"></i>
+                    <p>Click or drag PPT files</p>
+                    <span>Supports .ppt, .pptx natively</span>
+                </div>
+                <input type="file" id="fileInput" accept=".ppt,.pptx" multiple hidden>
+                <div class="uploaded-files" id="uploadedFiles"></div>
+            </div>
+
+            <div class="sidebar-guide">
+                <h3><i class="ph ph-magic-wand"></i> Capabilities</h3>
+                <ul class="guide-list">
+                    <li><i class="ph ph-chart-line-up"></i> <b>Smart Charts:</b> AI automatically generates real data
+                        charts</li>
+                    <li><i class="ph ph-youtube-logo"></i> <b>YouTube Summaries:</b> Paste a link to convert video to
+                        PPT</li>
+                    <li><i class="ph ph-palette"></i> <b>Auto-Theming:</b> AI picks colors based on your topic</li>
+                    <li><i class="ph ph-file-ppt"></i> <b>Layout Extraction:</b> Upload PPTs to reuse their structure
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>Powered by Advanced LLMs</p>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <h1>AI Workspace</h1>
+                    <p>Describe your topic or paste a YouTube URL to get started</p>
+                </div>
+                <div class="status-badge">
+                    <span class="pulse"></span> System Ready
+                </div>
+            </header>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Messages go here -->
+                </div>
+
+                <div class="typing-indicator hidden" id="typingIndicator">
+                    <div class="bot-avatar glass-avatar">
+                        <i class="ph-fill ph-robot"></i>
+                    </div>
                     <div class="typing-dots">
-                        <span></span>
-                        <span></span>
-                        <span></span>
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="input-wrapper glass-panel">
+                        <textarea id="textInput"
+                            placeholder="E.g., Create a 10-slide strategy deck for a new SaaS product launch..."
+                            rows="1"></textarea>
+                        <button id="sendButton" class="btn-primary" disabled>
+                            <i class="ph-bold ph-paper-plane-right"></i>
+                            <span>Generate</span>
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="chat-input-section">
-            <div class="file-upload-area" id="fileUploadArea">
-                <div class="file-upload-content">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                            stroke-linejoin="round" />
-                    </svg>
-                    <p>Drop your PowerPoint file here or click to upload</p>
-                    <p class="file-info">Supports .ppt, .pptx files up to 50MB</p>
-                </div>
-                <input type="file" id="fileInput" accept=".ppt,.pptx" multiple hidden>
-            </div>
-
-            <div class="uploaded-files" id="uploadedFiles"></div>
-
-            <div class="input-container">
-                <div class="theme-selector">
-                    <label for="themeSelect">🎨 Theme:</label>
-                    <select id="themeSelect">
-                        <option value="2980b9">💙 Professional Blue</option>
-                        <option value="e74c3c">❤️ Modern Red</option>
-                        <option value="27ae60">💚 Fresh Green</option>
-                        <option value="8e44ad">💜 Creative Purple</option>
-                        <option value="f39c12">🧡 Warm Orange</option>
-                        <option value="16a085">💎 Teal</option>
-                    </select>
-                </div>
-
-                <div class="length-selector" style="margin-left: 10px;">
-                    <label for="lengthSelect">📏 Length:</label>
-                    <select id="lengthSelect">
-                        <option value="Short (3-5)">Short (3-5 slides)</option>
-                        <option value="Medium (6-10)" selected>Medium (6-10 slides)</option>
-                        <option value="Long (11-15)">Long (11-15 slides)</option>
-                    </select>
-                </div>
-
-                <div class="text-input-wrapper">
-                    <textarea id="textInput" placeholder="Describe what you want me to do with your presentation..."
-                        rows="1"></textarea>
-                    <button class="send-button" id="sendButton" disabled>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                            <polygon points="22,2 15,22 11,13 2,9 22,2" fill="currentColor" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
 
-    <div class="footer-icons">
-        <a href="https://github.com/OmAmar106" target="_blank" aria-label="GitHub" rel="noopener">
-            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577
-0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.757-1.333-1.757-1.09-.745.083-.73.083-.73
-1.205.085 1.84 1.238 1.84 1.238 1.07 1.835 2.807 1.305 3.492.998.107-.775.418-1.305.762-1.605-2.665-.3-5.466-1.335-5.466-5.93
-0-1.31.465-2.382 1.235-3.222-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.52 11.52 0 013.003-.403c1.02.005 2.045.138 3.003.403
-2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.222
-0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286
-0 .315.21.694.825.577C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z" />
-            </svg>
-        </a>
-        <a href="https://linkedin.com/in/om-amar" target="_blank" aria-label="LinkedIn" rel="noopener">
-            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path
-                    d="M20.447 20.452h-3.554v-5.569c0-1.328-.024-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.352V9h3.414v1.561h.049c.476-.9 1.637-1.852 3.37-1.852 3.6 0 4.266 2.368 4.266 5.452v6.291zM5.337 7.433a2.07 2.07 0 110-4.139 2.07 2.07 0 010 4.14zm1.777 13.019H3.56V9h3.554v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.728v20.543C0 23.226.792 24 1.771 24h20.451c.982 0 1.778-.774 1.778-1.729V1.728C24 .774 23.207 0 22.225 0z" />
-            </svg>
-        </a>
-    </div>
+    <!-- Background Orbs for aesthetic -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

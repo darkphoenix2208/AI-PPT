@@ -175,10 +175,7 @@ class ChatBot {
         fileDiv.innerHTML = `
             <div class="file-details">
                 <div class="file-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <i class="ph-fill ph-file-ppt" style="font-size: 24px; color: var(--primary);"></i>
                 </div>
                 <div>
                     <div class="file-name">${this.escapeHtml(file.name)}</div>
@@ -186,10 +183,7 @@ class ChatBot {
                 </div>
             </div>
             <button class="remove-file" type="button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <i class="ph-bold ph-x"></i>
             </button>
         `;
 
@@ -276,8 +270,7 @@ class ChatBot {
             if (fullPrompt) formData.append("text", fullPrompt);
 
             files.forEach((file) => formData.append("files[]", file));
-            const apiKey = document.getElementById("apiKeyInput").value;
-            if (!apiKey) throw new Error("Please Enter API Key.");
+            const apiKey = document.getElementById("apiKeyInput")?.value || "";
 
             // Get theme color from selector
             const themeColor = document.getElementById("themeSelect")?.value || "2980b9";
@@ -392,11 +385,8 @@ class ChatBot {
 
         messageContainer.innerHTML = `
             <div class="message-wrapper">
-                <div class="message-avatar user-avatar">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                <div class="message-avatar user-avatar" style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
+                    <i class="ph-fill ph-user" style="font-size: 18px;"></i>
                 </div>
                 <div class="message user-message">${this.escapeHtml(text)}</div>
             </div>
@@ -414,12 +404,8 @@ class ChatBot {
         // Main message HTML
         messageContainer.innerHTML = `
         <div class="message-wrapper">
-            <div class="bot-avatar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                    <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    <path d="M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+            <div class="bot-avatar glass-avatar" style="background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px var(--primary-glow);">
+                <i class="ph-fill ph-robot" style="font-size: 18px;"></i>
             </div>
             <div class="message bot-message">
                 ${this.escapeHtml(text)}
@@ -437,11 +423,7 @@ class ChatBot {
             btn.className = 'download-button';
             btn.type = 'button';
             btn.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <i class="ph-bold ph-download-simple" style="font-size: 18px;"></i>
             Download Enhanced PPT
         `;
             btn.addEventListener('click', () => this.downloadFile(result));
@@ -471,12 +453,8 @@ class ChatBot {
         errorContainer.className = 'message-container bot-message-container';
         errorContainer.innerHTML = `
             <div class="message-wrapper">
-                <div class="bot-avatar" style="background: var(--color-error);">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                        <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
-                        <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-                    </svg>
+                <div class="bot-avatar glass-avatar" style="background: var(--accent); color: white; display: flex; align-items: center; justify-content: center;">
+                    <i class="ph-fill ph-warning-circle" style="font-size: 18px;"></i>
                 </div>
                 <div class="message bot-message" style="color: var(--color-error); border-color: rgba(var(--color-error-rgb), 0.3);">
                     ${this.escapeHtml(message)}
